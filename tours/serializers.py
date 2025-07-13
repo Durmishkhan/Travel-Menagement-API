@@ -19,15 +19,14 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-    
+class TripSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Trip
+        fields = "__all__"
+
 class LocationsSerialzier(serializers.ModelSerializer):
     class Meta:
         model = Locations
-        fields = "__all__"
-
-class ExpenseSerialzier(serializers.ModelSerializer):
-    class Meta:
-        model = Expense
         fields = "__all__"
 
 class ExpenseSerializer(serializers.ModelSerializer):

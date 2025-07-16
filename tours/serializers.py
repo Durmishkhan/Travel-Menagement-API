@@ -24,7 +24,7 @@ class TripSerializer(serializers.ModelSerializer):
         model = Trip
         fields = "__all__"
 
-class LocationSerialzier(serializers.ModelSerializer):
+class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
         fields = "__all__"

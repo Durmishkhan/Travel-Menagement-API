@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import generics
-from .serializers import UserSerializer, TripSerializer, LocationSerialzier, ExpenseSerializer
+from .serializers import UserSerializer, TripSerializer, LocationSerializer, ExpenseSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Trip,Location,Expense
 from rest_framework.response import Response
@@ -71,7 +71,7 @@ class TripUpdateView(generics.RetrieveUpdateAPIView):
 
 
 class LocationCreateApiView(generics.ListCreateAPIView):
-    serializer_class = LocationSerialzier
+    serializer_class = LocationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self): #type: ignore
@@ -81,19 +81,25 @@ class LocationCreateApiView(generics.ListCreateAPIView):
         serializer.save(user=self.request.user)
 
 
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
+import logging
+
+logger = logging.getLogger(__name__)
+
 class LocationDestroyUpdateApiView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = LocationSerialzier
+    serializer_class = LocationSerializer 
     permission_classes = [IsAuthenticated]
     lookup_field = 'pk'
 
     def get_queryset(self): #type: ignore
         return Location.objects.filter(user=self.request.user)
-    
 
     def perform_destroy(self, instance):
         if instance.user != self.request.user:
             raise PermissionDenied("You can't DELETE this Location")
         
-        logger.info(f"User {self.request.user.pk} deleting trip: {instance.id}")
-        print(f"Deleting trip: {instance}")
+        logger.info(f"User {self.request.user.pk} deleting location: {instance.id}")
+        print(f"Deleting location: {instance}")
         instance.delete()

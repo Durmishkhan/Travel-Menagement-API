@@ -29,7 +29,8 @@ class Trip(models.Model):
 class Location(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=50)
-    visit_time = models.DateField()
+    open_time= models.TimeField()
+    close_time = models.TimeField()
     description = models.TextField(blank = True)
 
     def __str__(self):

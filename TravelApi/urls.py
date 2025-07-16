@@ -9,6 +9,6 @@ urlpatterns = [
     path("api/token", TokenObtainPairView.as_view(), name = 'get_token'),
     path("api/tpken/refresh", TokenRefreshView.as_view(), name  = "refresh_token"),
     path('api-auth/', include('rest_framework.urls')),
-    # path("api", include('tours.urls'))
+    path("api/", include('tours.urls'))
 
 ]

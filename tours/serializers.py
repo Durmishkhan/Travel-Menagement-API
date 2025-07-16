@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User,Expense,Locations,Trip
+from .models import User,Expense,Location,Trip
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=8)
@@ -24,9 +24,9 @@ class TripSerializer(serializers.ModelSerializer):
         model = Trip
         fields = "__all__"
 
-class LocationsSerialzier(serializers.ModelSerializer):
+class LocationSerialzier(serializers.ModelSerializer):
     class Meta:
-        model = Locations
+        model = Location
         fields = "__all__"
 
 class ExpenseSerializer(serializers.ModelSerializer):

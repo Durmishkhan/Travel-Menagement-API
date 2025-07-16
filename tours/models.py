@@ -24,14 +24,16 @@ class Trip(models.Model):
     end_date = models.DateField()
     budget = models.DecimalField(max_digits=10, decimal_places=2)
     notes = models.TextField(blank=True)
+    locations = models.ManyToManyField('Location', related_name='trips', blank=True)
 
-class Locations(models.Model):
-    user = models.ForeignKey(Trip, on_delete=models.CASCADE)
+class Location(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=50)
     visit_time = models.DateField()
     description = models.TextField(blank = True)
 
-from django.db import models
+    def __str__(self):
+        return self.title
 
 class Expense(models.Model):
     CATEGORY_CHOICES = [

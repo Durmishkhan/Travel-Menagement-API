@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.core.exceptions import PermissionDenied
 import logging
+from django.http import Http404
+
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -81,13 +83,6 @@ class LocationCreateApiView(generics.ListCreateAPIView):
         serializer.save(user=self.request.user)
 
 
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
-import logging
-
-logger = logging.getLogger(__name__)
-
 class LocationDestroyUpdateApiView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = LocationSerializer 
     permission_classes = [IsAuthenticated]
@@ -103,3 +98,61 @@ class LocationDestroyUpdateApiView(generics.RetrieveUpdateDestroyAPIView):
         logger.info(f"User {self.request.user.pk} deleting location: {instance.id}")
         print(f"Deleting location: {instance}")
         instance.delete()
+
+
+class ExpenseListCreateView(generics.ListCreateAPIView):
+    serializer_class = ExpenseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self): #type: ignore
+        trip_id = self.kwargs['trip_id']
+        return Expense.objects.filter(id=trip_id, user=self.request.user)
+
+    def perform_create(self, serializer):
+        trip_id = self.kwargs['trip_id']
+        try:
+            trip = Trip.objects.get(id=trip_id, user=self.request.user)
+            serializer.save(trip=trip)
+        except Trip.DoesNotExist:
+            raise Http404("Trip not found")
+
+class ExpneseUpdateApiView(generics.RetrieveDestroyAPIView):
+    serializer_class = ExpenseSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
+
+    def get_queryset(self): # type: ignore
+        return Expense.objects.filter(user=self.request.user)
+
+    def perform_destroy(self, instance):
+        if instance.user != self.request.user:
+            raise PermissionDenied("You can't DELETE this expense !")
+        
+        logger.info(f"user{self.request.user.pk} deleting expense: instance.id")
+        print(f"Deleting expense: {instance}")
+        instance.delete()
+    
+    def delete(self,request,*args, **kwargs):
+        try:
+            instance = self.get_object()
+            self.perform_destroy(instance)
+            return Response(
+                {"message": "Expense successfully deleted", "id": kwargs.get('pk')}, 
+                status=status.HTTP_204_NO_CONTENT
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class ExpenseUpdateApiView(generics.RetrieveUpdateAPIView):
+    serializer_class = ExpenseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self): #type: ignore
+        return Expense.objects.filter(user=self.request.user)
+    
+    def perform_update(self,serializer):
+        serializer.save(user=self.request.user)

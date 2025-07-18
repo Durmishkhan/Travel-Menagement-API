@@ -106,7 +106,7 @@ class ExpenseListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self): #type: ignore
         trip_id = self.kwargs['trip_id']
-        return Expense.objects.filter(id=trip_id, user=self.request.user)
+        return Expense.objects.filter(trip__id=trip_id, trip__user=self.request.user)
 
     def perform_create(self, serializer):
         trip_id = self.kwargs['trip_id']

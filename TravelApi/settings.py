@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'tours',
+    'tours.apps.ToursConfig'
     'corsheaders',
     'rest_framework_simplejwt',
     'django_filters',

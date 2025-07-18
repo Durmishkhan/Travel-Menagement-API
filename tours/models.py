@@ -1,19 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-
+from django.core.exceptions import ValidationError
 
 class User(AbstractUser):
     ROLE_CHOICES = [
-        ('student', 'Student'),
-        ('instructor', 'Instructor'),
+        ('visitor', 'Visitor'),
+        ('guide', 'Guide'),
         ('admin', 'Admin'),
     ]
 
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='visitor')
 
     def __str__(self):
         role_display = dict(self.ROLE_CHOICES).get(self.role, self.role)
         return f"{self.username} ({role_display})"
+
 
 
 class Trip(models.Model):
@@ -25,6 +26,18 @@ class Trip(models.Model):
     budget = models.DecimalField(max_digits=10, decimal_places=2)
     notes = models.TextField(blank=True)
     locations = models.ManyToManyField('Location', related_name='trips', blank=True)
+
+    def clean(self):
+        if self.end_date < self.start_date:
+            raise ValidationError("End date cannot be earlier than start date.")
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(end_date__gte=models.F('start_date')),
+                name='end_date_gte_start_date'
+            )
+        ]
 
 class Location(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -51,6 +64,31 @@ class Expense(models.Model):
     description = models.TextField(blank=True, null=True)
     date = models.DateField()
 
+    def clean(self):
+        if not (self.trip.start_date <= self.date <= self.trip.end_date):
+            raise ValidationError("Expense date must be within the trip's date range.")
+
     def __str__(self):
         category_display = dict(self.CATEGORY_CHOICES).get(self.category, self.category)
         return f"{category_display} - {self.amount} ({self.date})"
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(check=models.Q(amount__gt=0), name='positive_amount')
+        ]
+
+def validate_category_breakdown(value):
+    if not isinstance(value, dict):
+        raise ValidationError("category_breakdown must be a dictionary.")
+    for key, val in value.items():
+        if not isinstance(val, (int, float)) or val < 0:
+            raise ValidationError("Category values must be positive numbers.")
+
+class ExpenseSummary(models.Model):
+    trip = models.OneToOneField(Trip, on_delete=models.CASCADE, related_name='summary')
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    category_breakdown = models.JSONField(validators=[validate_category_breakdown])
+    generated_at = models.DateTimeField(auto_now=True) 
+
+    def __str__(self):
+        return f"Summary for {self.trip.title}"

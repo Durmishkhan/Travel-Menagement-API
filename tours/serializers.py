@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User,Expense,Location,Trip
+from .models import User,Expense,Location,Trip,ExpenseSummary
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=8)
@@ -35,3 +35,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Expense
         fields = ['id', 'trip', 'category', 'category_display', 'amount', 'description', 'date']
+
+class ExpenseSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExpenseSummary
+        fields = ['id', 'trip', 'total_amount', 'category_breakdown', 'generated_at']
+        read_only_fields = ['id', 'generated_at']

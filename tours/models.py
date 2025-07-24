@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from decimal import Decimal
 
 class User(AbstractUser):
     ROLE_CHOICES = [
@@ -38,7 +39,8 @@ class Trip(models.Model):
                 name='end_date_gte_start_date'
             )
         ]
-
+    def __str__(self):
+        return self.title
 class Location(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=50)
@@ -63,7 +65,7 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(blank=True, null=True)
     date = models.DateField()
-
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     def clean(self):
         if not (self.trip.start_date <= self.date <= self.trip.end_date):
             raise ValidationError("Expense date must be within the trip's date range.")
@@ -86,8 +88,8 @@ def validate_category_breakdown(value):
 
 class ExpenseSummary(models.Model):
     trip = models.OneToOneField(Trip, on_delete=models.CASCADE, related_name='summary')
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    category_breakdown = models.JSONField(validators=[validate_category_breakdown])
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default= Decimal('0'))
+    category_breakdown = models.JSONField(validators=[validate_category_breakdown], blank= True, default=dict)
     generated_at = models.DateTimeField(auto_now=True) 
 
     def __str__(self):

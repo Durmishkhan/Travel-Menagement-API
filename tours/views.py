@@ -6,13 +6,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 import logging
-
 from .serializers import (
     UserSerializer, TripSerializer, LocationSerializer, 
     ExpenseSerializer, ExpenseSummarySerializer
 )
 from .models import Trip, Location, Expense, ExpenseSummary
-from .permissions import IsVisitor, IsGuideOwnerOrReadOnly, IsAdmin
+from .permissions import IsVisitor, IsGuideOwnerOrReadOnly, IsAdmin, TripPermission, LocationPermission, ExpensePermission
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +26,6 @@ class UserViewSet(viewsets.GenericViewSet):
     
     @action(detail=False, methods=['post'])
     def register(self, request):
-        """User registration endpoint"""
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -38,11 +36,18 @@ class UserViewSet(viewsets.GenericViewSet):
 class TripViewSet(viewsets.ModelViewSet):
     """Trip CRUD operations ViewSet"""
     serializer_class = TripSerializer
-    permission_classes = [IsGuideOwnerOrReadOnly | IsAdmin | IsVisitor]
+    permission_classes = [TripPermission]
     
     def get_queryset(self): #type: ignore
         user = self.request.user
-        if user.role == 'admin':  #type: ignore
+
+        if getattr(user,'role', None) == 'visitor':
+            return Trip.objects.all()
+        
+        if not user.is_authenticated:
+            return Trip.objects.none()
+        
+        if getattr(user, 'role', None) == 'admin':
             return Trip.objects.all()
         return Trip.objects.filter(user=user)
     
@@ -53,9 +58,6 @@ class TripViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
     
     def perform_destroy(self, instance):
-        if instance.user != self.request.user:
-            raise PermissionDenied("You can't DELETE this Trip")
-        
         logger.info(f"User {self.request.user.pk} deleting trip: {instance.id}")
         print(f"Deleting trip: {instance}")
         instance.delete()
@@ -68,44 +70,65 @@ class TripViewSet(viewsets.ModelViewSet):
                 {"message": "Trip successfully deleted", "id": kwargs.get('pk')}, 
                 status=status.HTTP_204_NO_CONTENT
             )
-        except Exception as e:
+        except PermissionDenied as e:
             return Response(
                 {"error": str(e)}, 
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_403_FORBIDDEN
+            )
+        except Trip.DoesNotExist:
+            return Response(
+                {"error": "Trip not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": "An error occurred while deleting the trip"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
 class LocationViewSet(viewsets.ModelViewSet):
     """Location CRUD operations ViewSet"""
     serializer_class = LocationSerializer
-    permission_classes = [IsGuideOwnerOrReadOnly | IsAdmin]
+    permission_classes = [LocationPermission]
     
     def get_queryset(self): #type: ignore
         user = self.request.user 
-        if user.role == 'admin': #type: ignore
+        if not user.is_authenticated:
+            return Location.objects.none()
+        if getattr(user, 'role', None) == 'admin':
+            return Location.objects.all()
+        if getattr(user, 'role', None) == 'visitor':
             return Location.objects.all()
         return Location.objects.filter(user=user)
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
     
     def perform_destroy(self, instance):
-        if instance.user != self.request.user:
-            raise PermissionDenied("You can't DELETE this Location")
-        
         logger.info(f"User {self.request.user.pk} deleting location: {instance.id}")
         print(f"Deleting location: {instance}")
         instance.delete()
 
+    
 
 class ExpenseViewSet(viewsets.ModelViewSet):
     """Expense CRUD operations ViewSet"""
     serializer_class = ExpenseSerializer
-    permission_classes = [IsGuideOwnerOrReadOnly | IsAdmin]
+    permission_classes = [ExpensePermission]
     
     def get_queryset(self): #type: ignore
         user = self.request.user
         trip_id = self.kwargs.get('trip_id')
+
+        if not user.is_authenticated:
+            return Expense.objects.none()
+        if user.role == 'visitor': #type: ignore
+            return Expense.objects.all()
         
         if user.role == 'admin': #type: ignore
             if trip_id:
@@ -178,20 +201,8 @@ class ExpenseSummaryViewSet(viewsets.ReadOnlyModelViewSet):
             raise Http404("Expense summary not found for this trip.")
 
 
-# urls.py-ისთვის
-from rest_framework.routers import DefaultRouter
 
-router = DefaultRouter()
-router.register(r'users', UserViewSet, basename='user')
-router.register(r'trips', TripViewSet, basename='trip')
-router.register(r'locations', LocationViewSet, basename='location')
-router.register(r'expenses', ExpenseViewSet, basename='expense')
-router.register(r'expense-summaries', ExpenseSummaryViewSet, basename='expense-summary')
 
-# Trip-specific expenses-ისთვის nested routing გჭირდება
-# რეკომენდაცია: drf-nested-routers package გამოიყენო
-
-urlpatterns = router.urls
 
 
 

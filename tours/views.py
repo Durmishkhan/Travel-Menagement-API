@@ -12,7 +12,8 @@ from .serializers import (
 )
 from .models import Trip, Location, Expense, ExpenseSummary
 from .permissions import IsVisitor, IsGuideOwnerOrReadOnly, IsAdmin, TripPermission, LocationPermission, ExpensePermission
-
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter,OrderingFilter
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -37,6 +38,16 @@ class TripViewSet(viewsets.ModelViewSet):
     """Trip CRUD operations ViewSet"""
     serializer_class = TripSerializer
     permission_classes = [TripPermission]
+    filter_backends = [
+        DjangoFilterBackend,   
+        SearchFilter,          
+        OrderingFilter,         
+    ]
+    
+    filterset_fields = ['destination','user']
+    search_fields = ['title', 'locations', 'start_date']   
+    ordering_fields = ['budget', 'start_date']            
+    ordering = ['start_date'] 
     
     def get_queryset(self): #type: ignore
         user = self.request.user
@@ -52,8 +63,11 @@ class TripViewSet(viewsets.ModelViewSet):
         return Trip.objects.filter(user=user)
     
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-    
+        trip = serializer.save(user=self.request.user)
+        locations = self.request.POST.get('locations')  
+        if locations:
+            trip.locations.set(locations)
+
     def perform_update(self, serializer):
         serializer.save(user=self.request.user)
     
@@ -100,6 +114,14 @@ class LocationViewSet(viewsets.ModelViewSet):
     """Location CRUD operations ViewSet"""
     serializer_class = LocationSerializer
     permission_classes = [LocationPermission]
+    filter_backends = [
+        DjangoFilterBackend,   
+        SearchFilter,       
+    ]
+    
+    filterset_fields = ['user']
+    search_fields = ['title']   
+    
     
     def get_queryset(self): #type: ignore
         user = self.request.user 
@@ -129,6 +151,16 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     """Expense CRUD operations ViewSet"""
     serializer_class = ExpenseSerializer
     permission_classes = [ExpensePermission]
+    filter_backends = [
+        DjangoFilterBackend,   
+        SearchFilter,          
+        OrderingFilter,         
+    ]
+    
+    filterset_fields = ['category', 'trip', 'date']
+    search_fields = ['description', 'trip__title']   
+    ordering_fields = ['amount']            
+    ordering = ['date']           
     
     def get_queryset(self): #type: ignore
         user = self.request.user

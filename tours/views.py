@@ -85,7 +85,16 @@ class TripViewSet(viewsets.ModelViewSet):
                 {"error": "An error occurred while deleting the trip"}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
+    @action(detail=True, methods=['get'], url_path='summary')
+    def summary(self,request,pk=None):
+        trip = self.get_object()
+        try:
+            summary = trip.summary
+        except ExpenseSummary.DoesNotExist:
+            raise NotFound("Summary does not exist for this trip")
+        serializer = ExpenseSummarySerializer(summary)
+        return Response(serializer.data)
+            
 
 class LocationViewSet(viewsets.ModelViewSet):
     """Location CRUD operations ViewSet"""
@@ -189,14 +198,14 @@ class ExpenseSummaryViewSet(viewsets.ReadOnlyModelViewSet):
         return ExpenseSummary.objects.filter(trip__user=user)
 
     
-    @action(detail=True, methods=['get'], url_path='summary')
-    def summary(self, request, pk=None):
-        try:
-            summary = ExpenseSummary.objects.get(trip__id=pk, trip__user=request.user)
-        except ExpenseSummary.DoesNotExist:
-            raise Http404("Expense summary not found or permission denied.")
-        serializer = self.get_serializer(summary)
-        return Response(serializer.data)
+    # @action(detail=True, methods=['get'], url_path='summary')
+    # def summary(self, request, pk=None):
+    #     try:
+    #         summary = ExpenseSummary.objects.get(trip__id=pk, trip__user=request.user)
+    #     except ExpenseSummary.DoesNotExist:
+    #         raise Http404("Expense summary not found or permission denied.")
+    #     serializer = self.get_serializer(summary)
+    #     return Response(serializer.data)
 
 
 

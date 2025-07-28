@@ -77,8 +77,9 @@ class Expense(models.Model):
     description = models.TextField(blank=True, null=True)
     date = models.DateField()
     def clean(self):
-        if not (self.trip.start_date <= self.date <= self.trip.end_date):
-            raise ValidationError("Expense date must be within the trip's date range.")
+        if self.trip and hasattr(self.trip, 'start_date') and hasattr(self.trip, 'end_date'):
+            if not (self.trip.start_date <= self.date <= self.trip.end_date):
+                raise ValidationError("Expense date must be within the trip's date range.")
 
     def __str__(self):
         category_display = dict(self.CATEGORY_CHOICES).get(self.category, self.category)

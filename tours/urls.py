@@ -9,19 +9,8 @@ router.register(r'locations', views.LocationViewSet, basename='location')
 router.register(r'expenses', views.ExpenseViewSet, basename='expense')
 router.register(r'expense-summaries', views.ExpenseSummaryViewSet, basename='expense-summary')
 
-# Trip-specific expenses-ისთვის nested routing გჭირდება
-# რეკომენდაცია: drf-nested-routers package გამოიყენო
 
 urlpatterns = router.urls
-
-
-
-
-
-
-
-
-
 
 
 

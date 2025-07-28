@@ -39,8 +39,19 @@ class Trip(models.Model):
                 name='end_date_gte_start_date'
             )
         ]
+    
     def __str__(self):
         return self.title
+        
+    def get_locations_names(self):
+        return ", ".join([str(location) for location in self.locations.all()])
+    
+    def get_locations_display(self):
+        locations = self.locations.all()
+        if not locations:
+            return "No locations"
+        return ", ".join([location.name for location in locations])
+    
 class Location(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=50)
@@ -59,13 +70,12 @@ class Expense(models.Model):
         ('activity', 'Activity'),
         ('other', 'Other'),
     ]
-
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     trip = models.ForeignKey('Trip', related_name='expenses', on_delete=models.CASCADE)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(blank=True, null=True)
     date = models.DateField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
     def clean(self):
         if not (self.trip.start_date <= self.date <= self.trip.end_date):
             raise ValidationError("Expense date must be within the trip's date range.")

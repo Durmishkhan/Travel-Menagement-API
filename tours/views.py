@@ -124,20 +124,20 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     def get_queryset(self): #type: ignore
         user = self.request.user
         trip_id = self.kwargs.get('trip_id')
-
         if not user.is_authenticated:
             return Expense.objects.none()
-        if user.role == 'visitor': #type: ignore
-            return Expense.objects.all()
-        
         if user.role == 'admin': #type: ignore
             if trip_id:
                 return Expense.objects.filter(trip__id=trip_id)
             return Expense.objects.all()
         
+        if user.role == 'guide': #type: ignore
+            if trip_id:
+                return Expense.objects.filter(trip__id=trip_id, trip__user=user)
+            return Expense.objects.filter(trip__user=user)
         if trip_id:
-            return Expense.objects.filter(trip__id=trip_id, trip__user=user)
-        return Expense.objects.filter(trip__user=user)
+            return Expense.objects.filter(trip__id=trip_id, user=user)
+        return Expense.objects.filter(user=user)
     
     def perform_create(self, serializer):
         trip_id = self.kwargs.get('trip_id')
@@ -151,7 +151,8 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             serializer.save(user=self.request.user)
     
     def perform_update(self, serializer):
-        serializer.save(user=self.request.user)
+        instance = serializer.instance
+        serializer.save(trip=instance.trip, user=instance.user)
     
     def perform_destroy(self, instance):
         if instance.trip.user != self.request.user:
@@ -177,28 +178,25 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
 
 class ExpenseSummaryViewSet(viewsets.ReadOnlyModelViewSet):
-    """Expense Summary read-only ViewSet"""
     serializer_class = ExpenseSummarySerializer
     permission_classes = [IsAuthenticated]
+    queryset = ExpenseSummary.objects.all()
     
-    def get_queryset(self):    #type: ignore
+    def get_queryset(self):#type: ignore
         user = self.request.user
+        if user.role in ['visitor', 'admin']: #type: ignore
+            return ExpenseSummary.objects.all()
         return ExpenseSummary.objects.filter(trip__user=user)
+
     
-    @action(detail=False, methods=['get'], url_path='by-trip/(?P<trip_id>[^/.]+)')
-    def get_by_trip(self, request, trip_id=None):
-        """Get expense summary by trip ID"""
+    @action(detail=True, methods=['get'], url_path='summary')
+    def summary(self, request, pk=None):
         try:
-            trip = Trip.objects.get(id=trip_id, user=request.user)
-        except Trip.DoesNotExist:
-            raise Http404("Trip not found or you do not have permission.")
-        
-        try:
-            summary = ExpenseSummary.objects.get(trip=trip)
-            serializer = self.get_serializer(summary)
-            return Response(serializer.data)
+            summary = ExpenseSummary.objects.get(trip__id=pk, trip__user=request.user)
         except ExpenseSummary.DoesNotExist:
-            raise Http404("Expense summary not found for this trip.")
+            raise Http404("Expense summary not found or permission denied.")
+        serializer = self.get_serializer(summary)
+        return Response(serializer.data)
 
 
 

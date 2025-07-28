@@ -86,7 +86,7 @@ class ExpensePermission(BasePermission):
         if user.role in ['admin', 'guide']:
             return True
         if user.role == 'visitor':
-            return request.method in SAFE_METHODS
+            return False
         return False  
     def has_object_permission(self, request, view, obj): #type: ignore
         user = request.user
@@ -96,5 +96,5 @@ class ExpensePermission(BasePermission):
         if user.role == 'guide':
             return request.method in SAFE_METHODS or obj.user == user
         if user.role == 'visitor':
-            return request.method in SAFE_METHODS
+            return False
         return False

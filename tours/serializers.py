@@ -18,23 +18,29 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
-
-class TripSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Trip
-        fields = "__all__"
-
+    
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
         fields = "__all__"
+
+class TripSerializer(serializers.ModelSerializer):
+    locations = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Trip
+        fields = ['id', 'title', 'destination', 'locations', 'start_date', 'end_date',
+                  'budget', 'notes', 'user']
+
+    def get_locations(self, obj):
+        return [location.title for location in obj.locations.all()]
 
 class ExpenseSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='get_category_display', read_only=True)
 
     class Meta:
         model = Expense
-        fields = ['id', 'trip', 'category', 'category_display', 'amount', 'description', 'date']
+        fields = ['id', 'trip', 'category', 'category_display', 'amount', 'description', 'date', 'user']
 
 class ExpenseSummarySerializer(serializers.ModelSerializer):
     class Meta:

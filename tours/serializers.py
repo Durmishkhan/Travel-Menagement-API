@@ -86,5 +86,3 @@ class ExpenseSummarySerializer(serializers.ModelSerializer):
         }
     
 
-class EmptySerializer(serializers.ModelSerializer):
-    pass

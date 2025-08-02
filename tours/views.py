@@ -8,7 +8,7 @@ from django.http import Http404
 import logging
 from .serializers import (
     UserSerializer, TripSerializer, LocationSerializer, 
-    ExpenseSerializer, ExpenseSummarySerializer, EmptySerializer
+    ExpenseSerializer, ExpenseSummarySerializer
 )
 from .models import Trip, Location, Expense, ExpenseSummary
 from .permissions import IsVisitor, IsGuideOwnerOrReadOnly, IsAdmin, TripPermission, LocationPermission, ExpensePermission
@@ -108,7 +108,7 @@ class TripViewSet(viewsets.ModelViewSet):
             raise NotFound("Summary does not exist for this trip")
         serializer = ExpenseSummarySerializer(summary)
         return Response(serializer.data)
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsVisitor], serializer_class=EmptySerializer)
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsVisitor])
     def enroll(self, request, pk=None):
         trip = self.get_object()
         user = request.user

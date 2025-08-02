@@ -85,3 +85,6 @@ class ExpenseSummarySerializer(serializers.ModelSerializer):
             key: f"{value} $" for key, value in breakdown.items()
         }
     
+
+class EmptySerializer(serializers.ModelSerializer):
+    pass

@@ -27,6 +27,8 @@ class Trip(models.Model):
     budget = models.DecimalField(max_digits=10, decimal_places=2)
     notes = models.TextField(blank=True)
     locations = models.ManyToManyField('Location', related_name='trips', blank=True)
+    enrolled_visitors = models.ManyToManyField(User,related_name='enrolled_trips',blank=True)
+    
 
     def clean(self):
         if self.end_date < self.start_date:
